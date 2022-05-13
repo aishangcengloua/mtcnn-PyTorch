@@ -1,4 +1,4 @@
-# 1	网络结构
+# 网络结构
 &emsp;&emsp;MTCNN 是多任务级联 CNN 的人脸检测深度学习模型，该模型不仅考虑了人脸检测概率，还综合训练了人脸边框回归和面部关键点检测，多任务同时建立 loss function 并训练，因此为 MTCNN。级联 CNN 主要由三个子网络组成：P-Net、R-Net 和 O-Net。
 
 &emsp;&emsp;P-Net 的结构如下：
@@ -28,11 +28,11 @@
 
 ![image-20220513102200026.png](https://s2.loli.net/2022/05/13/h1UD4JKFopZlrt2.png)
 
-进一步将 R-Net 的所得到的区域缩放到 (48，48，3)，输入到最后的 O-Net，O-Net 的结构与 P-Net 类似，只不过在测试输出的时候多了关键点位置的输出。输入大小为 (48，48，3) 的图像，输出包含 n 个人脸概率、边界框的偏移量和关键点的偏移量。三个字网络流程如下：
+进一步将 R-Net 的所得到的区域缩放到 (48，48，3)，输入到最后的 O-Net，O-Net 的结构与 P-Net 类似，只不过在测试输出的时候多了关键点位置的输出。输入大小为 (48，48，3) 的图像，输出包含 n 个人脸概率、边界框的偏移量和关键点的偏移量。三个子网络流程如下：
 
 ![image-20220513102012433.png](https://s2.loli.net/2022/05/13/Az3yTJxBpgZItC6.png)
 
-# 2	图像金字塔
+# 图像金字塔
 &emsp;&emsp;MTCNN基于卷积神经网络，通常只适用于检测一定尺寸范围内的人脸，比如其中的 P-Net，用于判断 12 × 12 大小范围内是否含有人脸，但是输入图像中人脸的尺寸未知，需要构建图像金字塔获得不同尺寸的图像，缩放图像是为了将图像中的人脸缩放到网络能检测的适宜尺寸，只要某个人脸被放缩到12×12左右，就可以被检测出来，下图为MTCNN人脸检测流程。
 
 ![image-20220513103304797.png](https://s2.loli.net/2022/05/13/uIRCSO7yJPjkimL.png)
@@ -67,14 +67,14 @@
 
 2. 根据设置的金字塔层间缩放比率，确定每层图像的尺寸。
 
-# 3	其他
+# 其他
 
 **<font color=red>Tips：</font>** 
 
 - 测试时只使用 onet.eval()，这是因为只有 O-Net 中有 Dropout 层。如果模型中有 BN 层和 Dropout，在测试时添加 model.eval()。model.eval() 是保证 BN 层能够用全部训练数据的均值和方差，即测试过程中要保证 BN 层的均值和方差不变。对于 Dropout，model.eval() 是利用到了所有网络连接，即不进行随机舍弃神经元；
 - 将 255 的 RGB 图像归一化到了 [-1，1] 的区间，归一化操作，加快收敛速度。由于图片每个像素点上是 [0，255] 的数，都是非负数，对每个像素点做 (x – 127.5) / 128，可以把 [0，255] 映射为 (-1，1)。有正有负的输入，损失函数收敛速度更快。因为 MTCNN 的训练中有次操作，因此测试时也要做。
 
-# 4	效果
+# 效果
 
 &emsp;&emsp;本次代码实现了两种检测方式：静态图像检测和摄像头实时检测。
 
@@ -138,13 +138,13 @@ if __name__ == "__main__":
     camera_detect()
 ```
 
-# 5	参考
+# 参考
 
-- [https://its301.com/article/weixin_41721222/88084549](https://its301.com/article/weixin_41721222/88084549)
-- [https://www.i4k.xyz/article/yanxueotft/99696057](https://www.i4k.xyz/article/yanxueotft/99696057)
-- [https://www.twblogs.net/a/5eef9bb51f92b2f1a17d09ef/?lang=zh-cn](https://www.twblogs.net/a/5eef9bb51f92b2f1a17d09ef/?lang=zh-cn)
-- [https://github.com/inkuang/MTCNN-PyTorch](https://github.com/inkuang/MTCNN-PyTorch)
-- [https://github.com/TropComplique/mtcnn-pytorch](https://github.com/TropComplique/mtcnn-pytorch)
-- [https://github.com/kpzhang93/MTCNN_face_detection_alignment](https://github.com/kpzhang93/MTCNN_face_detection_alignment)
-- [Joint Face Detection and Alignment using Multi-task Cascaded Convolutional Networks](https://arxiv.org/abs/1604.02878)
+- [**https://its301.com/article/weixin_41721222/88084549**](https://its301.com/article/weixin_41721222/88084549)
+- [**https://www.i4k.xyz/article/yanxueotft/99696057**](https://www.i4k.xyz/article/yanxueotft/99696057)
+- [**https://www.twblogs.net/a/5eef9bb51f92b2f1a17d09ef/?lang=zh-cn**](https://www.twblogs.net/a/5eef9bb51f92b2f1a17d09ef/?lang=zh-cn)
+- [**https://github.com/inkuang/MTCNN-PyTorch**](https://github.com/inkuang/MTCNN-PyTorch)
+- [**https://github.com/TropComplique/mtcnn-pytorch**](https://github.com/TropComplique/mtcnn-pytorch)
+- [**https://github.com/kpzhang93/MTCNN_face_detection_alignment**](https://github.com/kpzhang93/MTCNN_face_detection_alignment)
+- [**Joint Face Detection and Alignment using Multi-task Cascaded Convolutional Networks**](https://arxiv.org/abs/1604.02878)
 
