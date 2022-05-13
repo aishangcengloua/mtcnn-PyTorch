@@ -1,7 +1,10 @@
 # 1	网络结构
 &emsp;&emsp;MTCNN 是多任务级联 CNN 的人脸检测深度学习模型，该模型不仅考虑了人脸检测概率，还综合训练了人脸边框回归和面部关键点检测，多任务同时建立 loss function 并训练，因此为 MTCNN。级联 CNN 主要由三个子网络组成：P-Net、R-Net 和 O-Net。
+
 &emsp;&emsp;P-Net 的结构如下：
-![image-20220513102050896](C:\Users\爱上层楼\AppData\Roaming\Typora\typora-user-images\image-20220513102050896.png)
+
+![image-20220513102050896.png](https://s2.loli.net/2022/05/13/PjKVGbtvBT2zUNw.png)
+
 从网络结构上看，P-Net 接受大小为 (12，12，3) 的图片的输入，输出三种特征图，大小为 (1，1，C)，也就是说最终得到的特征图每一点都对应着一个大小为 12×12 的感受野。三种输出如下：
 
 - **cls**：图像是否包含人脸，输出向量大小为 (1，1，2)，也就是两个值，即图像不是人脸的概率和图像是人脸的概率。这两个值加起来严格等于 1，之所以使用两个值来表示，是为了方便定义交叉熵损失函数；
@@ -16,18 +19,25 @@
 - 在实际测试中，P-Net 的输出中不包括 **landmark**。
 
 &emsp;&emsp;R-Net 的网络结构如下：
-![image-20220513102136745](C:\Users\爱上层楼\AppData\Roaming\Typora\typora-user-images\image-20220513102136745.png)
+
+![image-20220513125503525.png](https://s2.loli.net/2022/05/13/9m57T1argLsCPek.png)
+
 由于 P-Net 是对输出特征图的每一个像素进行预测，因此结果十分冗杂，所以接下来使用 R-Net 进一步优化。R-Net 和 P-Net 类似，不过这一步的输入是前面 P-Net 生成的边界框，不管实际边界框的大小，在输入 R-Net 之前，都需要缩放到 (24，24，3)。网络的输出和 P-Net 是一样的。这一步的目的主要是为了去除大量的非人脸框。
+
 &emsp;&emsp;O-Net 的网络结构如下：
-![image-20220513102200026](C:\Users\爱上层楼\AppData\Roaming\Typora\typora-user-images\image-20220513102200026.png)
+
+![image-20220513102200026.png](https://s2.loli.net/2022/05/13/h1UD4JKFopZlrt2.png)
+
 进一步将 R-Net 的所得到的区域缩放到 (48，48，3)，输入到最后的 O-Net，O-Net 的结构与 P-Net 类似，只不过在测试输出的时候多了关键点位置的输出。输入大小为 (48，48，3) 的图像，输出包含 n 个人脸概率、边界框的偏移量和关键点的偏移量。三个字网络流程如下：
 
-![image-20220513102012433](C:\Users\爱上层楼\AppData\Roaming\Typora\typora-user-images\image-20220513102012433.png)
+![image-20220513102012433.png](https://s2.loli.net/2022/05/13/Az3yTJxBpgZItC6.png)
 
 # 2	图像金字塔
 &emsp;&emsp;MTCNN基于卷积神经网络，通常只适用于检测一定尺寸范围内的人脸，比如其中的 P-Net，用于判断 12 × 12 大小范围内是否含有人脸，但是输入图像中人脸的尺寸未知，需要构建图像金字塔获得不同尺寸的图像，缩放图像是为了将图像中的人脸缩放到网络能检测的适宜尺寸，只要某个人脸被放缩到12×12左右，就可以被检测出来，下图为MTCNN人脸检测流程。
 
-![image-20220513103304797](C:\Users\爱上层楼\AppData\Roaming\Typora\typora-user-images\image-20220513103304797.png)
+![image-20220513103304797.png](https://s2.loli.net/2022/05/13/uIRCSO7yJPjkimL.png)
+
+
 
 &emsp;&emsp;在人脸检测中，通常要设置要原图中要检测的最小人脸尺寸，原图中小于这个尺寸的人脸不必关心，MTCNN 代码中为 `minsize = 20`，MTCNN P-Net 用于检测 12 × 12 大小的人脸，这需要我们将不同的人脸大小都要缩放到 12 × 12。在 P-Net 中我们为什么可以对输出特征图中的每一个像素方格进行预测，正是因为原图中的人脸都被缩放到 12 × 12，而且输出特征图的感受野正是 12 × 12。
 
@@ -47,8 +57,10 @@
 - 对应的图像尺寸为：`(h_n, w_n) = (h * scale_n, w_n * scale_n)`；
 - 保证 `min(h_n, w_n) >net_face_size`。
 
-**<font color=red>注：</font>**缩小比例为缩放尺寸的倒数。
+**<font color=red>注：</font>** 缩小比例为缩放尺寸的倒数。
+
 &emsp;&emsp;在 MTCNN 的实际测试中，如果输入图像为 (100，120)，其中人脸最小为 (20，20)，最大为 (20，20)——对应图像较短边长，为了将人脸放缩到 (12，12)，同时保证相邻层间缩放比率 `factor = 0.709`，依据上述公式则最大缩放尺度为 12 / 20，最小缩放尺度为 12 / 20，金字塔中图像尺寸依次为 (60，72)、(52，61)、(36，43)、(26，31)、(18，22)、(13，16)，其中 (60，72) 对应把 (20，20) 的人脸缩放到 (12，12)，(13，16)对应把 (100，100) 的人脸缩放到 (12，12)，在保证缩放比率一致的情况下近似。
+
 &emsp;&emsp;综上，构建图像金字塔有两个步骤：
 
 1. 给定输入图像，根据设置的最小人脸尺寸以及网络能检测的人脸尺寸，确定最大缩放图像和最小缩放图像；
@@ -91,7 +103,7 @@ drawed_image.show()
 #     face_img_list[i].save("./images/face_" + str(i + 1) + ".jpg")
 ```
 
-![drawed_image](E:\PyCharm\PyTorch\MTCNN-PyTorch\images\drawed_image.jpg)
+![drawed_image.jpg](https://s2.loli.net/2022/05/13/U2MBCZjuy8DzhXm.jpg)
 
 - 摄像头实时检测
 
